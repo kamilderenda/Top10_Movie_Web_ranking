@@ -8,9 +8,10 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, NumberRange
 import requests
 
-
+API_KEY = "a2e47788c725aaa8e050e260e2778073"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+MOVIE_DB_IMAGE_URL = "https://image.tmdb.org/t/p/w500"
 Bootstrap5(app)
 
 # CREATE DB
@@ -29,25 +30,22 @@ class Movie(db.Model):
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[str] = mapped_column(String(250), nullable=False)
     rating: Mapped[float] = mapped_column(Float, nullable=False)
-    ranking: Mapped[int] = mapped_column(Integer, nullable=False)
+    ranking: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
     review: Mapped[str] = mapped_column(String(250), nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
 
+url = "https://api.themoviedb.org/3/search/movie?include_adult=false&language=en-US&page=1"
+TMBD_URL="https://api.themoviedb.org/3/search/movie"
+TMBD_BEARER="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMmU0Nzc4OGM3MjVhYWE4ZTA1MGUyNjBlMjc3ODA3MyIsIm5iZiI6MTcyNTQ2MzE5NS4yNDk2NTEsInN1YiI6IjY2ZDg3OTdiNDM1M2E1YzdiOTA5NmE1MCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nGFeLUeOtR_nATX10YuVOuDY5zWmf_Dr_aRIMyqLVMU"
+headers = {
+    "accept": "application/json",
+    "Authorization": f"Bearer {TMBD_BEARER}"
+}
 
 
-# with app.app_context():
-#     #db.create_all()
-#     new_movie = Movie(
-#     title="Avatar The Way of Water",
-#     year=2022,
-#     description="Set more than a decade after the events of the first film, learn the story of the Sully family (Jake, Neytiri, and their kids), the trouble that follows them, the lengths they go to keep each other safe, the battles they fight to stay alive, and the tragedies they endure.",
-#     rating=7.3,
-#     ranking=9,
-#     review="I liked the water.",
-#     img_url="https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg"
-# )
-#     db.session.add(new_movie)
-#     db.session.commit()
+
+
+
 
 
 # CREATE TABLE
@@ -56,6 +54,11 @@ class EditForm(FlaskForm):
     rating = StringField("Your Rating Out of 10 e.g. 7.5")
     review = StringField("Your Review")
     submit = SubmitField("Done")
+
+class AddForm(FlaskForm):
+    title = StringField("Movie Title", validators=[DataRequired()])
+    submit = SubmitField("Add Movie")
+
 
 @app.route("/")
 def home():
@@ -82,6 +85,32 @@ def delete():
     db.session.commit()
     return redirect(url_for('home'))
 
+@app.route("/add", methods=["GET", "POST"])
+def add():
+    form = AddForm()
+    if form.validate_on_submit():
+        movie_title = form.title.data
+        response = requests.get(TMBD_URL, headers=headers, params={"query": movie_title})
+        data=response.json()["results"]
+        return render_template("select.html", movies=data)
+    return render_template("add.html", form=form)
+
+@app.route("/select")
+def select():
+    movie_id = request.args.get('id')
+    response = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}", headers=headers)
+    data = response.json()
+    new_movie = Movie(
+        title=data["title"],
+        year=data["release_date"],
+        description=data["overview"],
+        rating=0,
+        review="N/A",
+        img_url=f"{MOVIE_DB_IMAGE_URL}{data['poster_path']}"
+    )
+    db.session.add(new_movie)
+    db.session.commit()
+    return redirect(url_for('edit', id=new_movie.id))
 
 
 if __name__ == '__main__':
