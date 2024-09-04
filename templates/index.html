@@ -10,7 +10,7 @@
     {% for movie in movies %}
   <div class="card" >
     <div class="front" style="background-image: url('{{ movie.img_url }}');">
-        <p class="large">{{ movie.ranking }}</p>
+        <p class="large">{{ movies|length-loop.index+1 }}</p>
     </div>
     <div class="back">
       <div>

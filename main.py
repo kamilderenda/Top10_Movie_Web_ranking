@@ -8,13 +8,11 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, NumberRange
 import requests
 
-API_KEY = "a2e47788c725aaa8e050e260e2778073"
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 MOVIE_DB_IMAGE_URL = "https://image.tmdb.org/t/p/w500"
 Bootstrap5(app)
 
-# CREATE DB
 class Base(DeclarativeBase):
     pass
 
@@ -34,21 +32,12 @@ class Movie(db.Model):
     review: Mapped[str] = mapped_column(String(250), nullable=False)
     img_url: Mapped[str] = mapped_column(String(250), nullable=False)
 
-url = "https://api.themoviedb.org/3/search/movie?include_adult=false&language=en-US&page=1"
 TMBD_URL="https://api.themoviedb.org/3/search/movie"
 TMBD_BEARER="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMmU0Nzc4OGM3MjVhYWE4ZTA1MGUyNjBlMjc3ODA3MyIsIm5iZiI6MTcyNTQ2MzE5NS4yNDk2NTEsInN1YiI6IjY2ZDg3OTdiNDM1M2E1YzdiOTA5NmE1MCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nGFeLUeOtR_nATX10YuVOuDY5zWmf_Dr_aRIMyqLVMU"
 headers = {
     "accept": "application/json",
     "Authorization": f"Bearer {TMBD_BEARER}"
 }
-
-
-
-
-
-
-
-# CREATE TABLE
 
 class EditForm(FlaskForm):
     rating = StringField("Your Rating Out of 10 e.g. 7.5")
@@ -62,7 +51,7 @@ class AddForm(FlaskForm):
 
 @app.route("/")
 def home():
-    all_movies = db.session.query(Movie).all()
+    all_movies = db.session.execute(db.select(Movie).order_by(Movie.rating)).scalars().all()
     return render_template("index.html", movies=all_movies)
 
 @app.route("/edit", methods=["GET", "POST"])
